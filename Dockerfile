@@ -45,8 +45,7 @@ RUN apt-get install -y g++
 WORKDIR /app
 COPY libcryptosec libcryptosec
 WORKDIR /app/libcryptosec
-RUN git checkout openssl-1.1.x && \
-    export OPENSSL_PREFIX=/usr/local/ssl && \
+RUN export OPENSSL_PREFIX=/usr/local/ssl && \
     export OPENSSL_LIBDIR=/usr/local/ssl/lib && \
     export INSTALL_PREFIX=/usr && \
     export INSTALL_LIBDIR=/usr/lib64 && \
