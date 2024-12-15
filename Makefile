@@ -14,6 +14,6 @@ output:
 
 clean:
 	rm -rf output
-	rm libp11-0.4.7.tar.gz
+	rm -f libp11-0.4.7.tar.gz
 
 .PHONY: docker_build clean
