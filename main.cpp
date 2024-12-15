@@ -58,7 +58,7 @@ int main () {
     if (certificate->verify(pub)) {
         std::cout << "Verficado" << std::endl;
     } else {
-        std::cout << "Falhou na verificação"
+        std::cout << "Falhou na verificação" << std::endl;
     }
 
     X509* cert_x509 = certificate->getX509();
