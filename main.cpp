@@ -34,9 +34,6 @@ int main () {
     }
 
     // A partir do EVP_PKEY contendo a chave, utilizamos ele pra construir um PublicKey e PrivateKey
-    // Obs: é possível que o programa dê throw na criação, isso ocorre porque o método AsymmetricKey::getAlgorithm()
-    //      não possui suporte as chaves pós-quantum e isso ainda precisa ser implementado. Uma solução temporária
-    //      é simplesmente comentar a chamada desse método no construtor de AsymmetricKey.
     PublicKey pub(key);
     PrivateKey priv(key);
 
@@ -59,7 +56,9 @@ int main () {
     std::cout << certificate->getPemEncoded() << std::endl;
 
     if (certificate->verify(pub)) {
-        std::cout << "verified" << std::endl;
+        std::cout << "Verficado" << std::endl;
+    } else {
+        std::cout << "Falhou na verificação"
     }
 
     X509* cert_x509 = certificate->getX509();
@@ -73,6 +72,7 @@ int main () {
 
     if (PEM_write_X509(fp, cert_x509) != 1) {
         std::cout << "Erro na escrita do arquivo" << std::endl;
+        return 1;
     }
 
     fclose(fp);
