@@ -10,19 +10,21 @@ RDNSequence::RDNSequence(X509_NAME *rdn)
 {
 	X509_NAME_ENTRY *nameEntry;
 	int i, num;
-	char *data;
+	ASN1_STRING *asn1data;
+	unsigned const char* data;
 	std::string value;
 	std::pair<ObjectIdentifier, std::string> oneEntry;
 	if (rdn)
 	{
-		num = sk_X509_NAME_ENTRY_num(rdn->entries);
+		num = X509_NAME_entry_count(rdn);
 		for (i=0;i<num;i++)
 		{
-			nameEntry = sk_X509_NAME_ENTRY_value(rdn->entries, i);
-			oneEntry.first = ObjectIdentifier(OBJ_dup(nameEntry->object));
+			nameEntry = X509_NAME_get_entry(rdn, i);
+			oneEntry.first = ObjectIdentifier(OBJ_dup(X509_NAME_ENTRY_get_object(nameEntry)));
 			
-			data = (char *)ASN1_STRING_data(nameEntry->value);
-			value = std::string(data);
+			asn1data = X509_NAME_ENTRY_get_data(nameEntry);
+			data = ASN1_STRING_get0_data(asn1data);
+			value = std::string(reinterpret_cast<const char*>(data));
 			oneEntry.second = value;
 			
 			this->newEntries.push_back(oneEntry);
@@ -75,9 +77,9 @@ RDNSequence::RDNSequence(STACK_OF(X509_NAME_ENTRY) *entries)
 		{
 			nameEntry = sk_X509_NAME_ENTRY_value(entries, i);
 			
-			oneEntry.first = ObjectIdentifier(OBJ_dup(nameEntry->object));
+			oneEntry.first = ObjectIdentifier(OBJ_dup(X509_NAME_ENTRY_get_object(nameEntry)));
 			
-			data = (char *)ASN1_STRING_data(nameEntry->value);
+			data = (char *)X509_NAME_ENTRY_get_data(nameEntry);
 			value = data;
 			oneEntry.second = value;
 			

@@ -1,8 +1,8 @@
 Summary: libcryptosec
 Name: libcryptosec
-Version: 2.3.3
+Version: 2.3.0
 Release: 1
-Source0: %{name}-%{version}.tar.gz
+Source0: %{name}-%{version}.zip
 License: GPL
 Group: Development/Tools
 BuildArch: x86_64
@@ -39,12 +39,6 @@ cp -f include/libcryptosec/ec/* %{buildroot}%{_includedir}/libcryptosec/ec
 %{_includedir}/libcryptosec/
 
 %changelog
-
-* Tue Apr 23 2024 Arthur Crippa Milanez <arthur.crippa@posgrad.ufsc.br> - 2.3.3
-- Fix a pkcs12 exception. 
-
-* Tue Apr 04 2023 Lucas Mayr <lucas.mayr@posgrad.ufsc.br> - 2.3.2
-- Fix Sequence 0 field when specific extension was added. 
 
 * Wed Dec 19 2018 Lucas Palma <lucas.palma@posgrad.ufsc.br> - 2.3.0
 - Adds EdDSA support with custom engine, that registers the NIDs 'ED25519', 'ED448' and 'ED521'. 

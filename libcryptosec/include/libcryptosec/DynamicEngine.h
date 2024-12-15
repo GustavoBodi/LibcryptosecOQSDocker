@@ -59,14 +59,14 @@ public:
 	 * @see Engine::removeFromEnginesList().
 	 */
 	void removeFromEnginesList() throw (EngineException);
-	
+
 	/**
 	 * Carrega a Engine e seus algoritmos.
 	 * @throw EngineException caso a Engine esteja indisponível ou ocorra erro ao carregá-la.
 	 * @return True se a Engine foi carregada com sucesso, senão False
 	 */
 	bool load() throw (EngineException);
-	
+
 	/**
 	 * Libera a Engine e seus algoritmos.
 	 * @throw EngineException caso a Engine esteja indisponível.

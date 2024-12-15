@@ -132,10 +132,25 @@ Pkcs7SignedData* Pkcs7SignedDataBuilder::doFinal()
 {
 	int rc;
 	Pkcs7SignedData *ret;
+
+	if (this->state == Pkcs7Builder::INIT)
+	{
+		this->p7bio = PKCS7_dataInit(this->pkcs7, NULL);
+		if (!this->p7bio)
+		{
+			this->state = Pkcs7Builder::NO_INIT;
+			PKCS7_free(this->pkcs7);
+			this->pkcs7 = NULL;
+			throw Pkcs7Exception(Pkcs7Exception::INTERNAL_ERROR, "Pkcs7Builder::update", true);
+		}
+		this->state = Pkcs7Builder::UPDATE;
+	}
+
 	if (this->state != Pkcs7Builder::UPDATE)
 	{
 		throw InvalidStateException("Pkcs7SignedDataBuilder::dofinal");
 	}
+
 	rc = BIO_flush(this->p7bio);
 	if (!rc)
 	{

@@ -18,53 +18,76 @@ EdDSAKeyPair::EdDSAKeyPair(std::string& encoded) throw (AsymmetricKeyException) 
 
 EdDSAKeyPair::EdDSAKeyPair(AsymmetricKey::Curve curve)
 		throw (AsymmetricKeyException) {
-	int r;
-	int nid = NID_undef;
-	EVP_PKEY_CTX *kctx = NULL;
-	EVP_PKEY *pkey = NULL;
-	ENGINE *e = NULL;
+//	int r;
+//	int nid = NID_undef;
+//	EVP_PKEY_CTX *kctx = NULL;
+//	EVP_PKEY *pkey = NULL;
+//	ENGINE *e = NULL;
+//
+//	this->key = NULL;
+//	this->engine = NULL;
+//
+//	switch (curve) {
+//	case AsymmetricKey::ED25519:
+//		nid = OBJ_sn2nid("ED25519");
+//		break;
+//	case AsymmetricKey::ED448:
+//		nid = OBJ_sn2nid("ED448");
+//		break;
+//	case AsymmetricKey::ED521:
+//		nid = OBJ_sn2nid("ED521");
+//		break;
+//	default:
+//		throw AsymmetricKeyException(AsymmetricKeyException::INTERNAL_ERROR,
+//			"EdDSAKeyPair::EdDSAKeyPair");
+//	}
+//
+//	if (nid == NID_undef) {
+//		throw AsymmetricKeyException(AsymmetricKeyException::INTERNAL_ERROR,
+//			"EdDSAKeyPair::EdDSAKeyPair");
+//	}
+//	EVP_PKEY_asn1_find(&e, nid);
+//	this->engine = e;
+//
+//	kctx = EVP_PKEY_CTX_new_id(nid, e);
+//	if (kctx == NULL) {
+//		throw AsymmetricKeyException(AsymmetricKeyException::INTERNAL_ERROR,
+//			"EdDSAKeyPair::EdDSAKeyPair");
+//	}
+//	r = EVP_PKEY_keygen_init(kctx);
+//	if (r != 1) {
+//		throw AsymmetricKeyException(AsymmetricKeyException::INTERNAL_ERROR,
+//			"EdDSAKeyPair::EdDSAKeyPair");
+//	}
+//	r = EVP_PKEY_keygen(kctx, &pkey);
+//	if (r != 1) {
+//		throw AsymmetricKeyException(AsymmetricKeyException::INTERNAL_ERROR,
+//			"EdDSAKeyPair::EdDSAKeyPair");
+//	}
+//	this->key = pkey;
+    int rc;
+    this->engine = NULL;
+    EVP_PKEY *pkey = EVP_PKEY_new();
+    EVP_PKEY_CTX *ctx = generateCTX(curve);
 
-	this->key = NULL;
-	this->engine = NULL;
 
-	switch (curve) {
-	case AsymmetricKey::ED25519:
-		nid = OBJ_sn2nid("ED25519");
-		break;
-	case AsymmetricKey::ED448:
-		nid = OBJ_sn2nid("ED448");
-		break;
-	case AsymmetricKey::ED521:
-		nid = OBJ_sn2nid("ED521");
-		break;
-	default:
-		throw AsymmetricKeyException(AsymmetricKeyException::INTERNAL_ERROR,
-			"EdDSAKeyPair::EdDSAKeyPair");
-	}
+    if (!ctx) {
+        throw AsymmetricKeyException(AsymmetricKeyException::INTERNAL_ERROR,
+	    "EdDSAKeyPair::EdDSAKeyPair");
+    }
 
-	if (nid == NID_undef) {
-		throw AsymmetricKeyException(AsymmetricKeyException::INTERNAL_ERROR,
-			"EdDSAKeyPair::EdDSAKeyPair");
-	}
-	EVP_PKEY_asn1_find(&e, nid);
-	this->engine = e;
-
-	kctx = EVP_PKEY_CTX_new_id(nid, e);
-	if (kctx == NULL) {
-		throw AsymmetricKeyException(AsymmetricKeyException::INTERNAL_ERROR,
-			"EdDSAKeyPair::EdDSAKeyPair");
-	}
-	r = EVP_PKEY_keygen_init(kctx);
-	if (r != 1) {
-		throw AsymmetricKeyException(AsymmetricKeyException::INTERNAL_ERROR,
-			"EdDSAKeyPair::EdDSAKeyPair");
-	}
-	r = EVP_PKEY_keygen(kctx, &pkey);
-	if (r != 1) {
-		throw AsymmetricKeyException(AsymmetricKeyException::INTERNAL_ERROR,
-			"EdDSAKeyPair::EdDSAKeyPair");
-	}
-	this->key = pkey;
+    if (!EVP_PKEY_keygen_init(ctx)) {
+        throw AsymmetricKeyException(AsymmetricKeyException::INTERNAL_ERROR,
+	     "EdDSAKeyPair::EdDSAKeyPair");
+    }
+    
+    if (!EVP_PKEY_keygen(ctx, &pkey)) {
+        throw AsymmetricKeyException(AsymmetricKeyException::INTERNAL_ERROR,
+	     "EdDSAKeyPair::EdDSAKeyPair");
+    }
+    
+    EVP_PKEY_CTX_free(ctx);
+    this->key = pkey;
 }
 
 EdDSAKeyPair::~EdDSAKeyPair() {
@@ -111,7 +134,7 @@ PrivateKey* EdDSAKeyPair::getPrivateKey() throw (AsymmetricKeyException) {
 			throw AsymmetricKeyException(AsymmetricKeyException::INVALID_TYPE,
 					"EdDSAKeyPair::getPrivateKey");
 		}
-		CRYPTO_add(&this->key->references, 1, CRYPTO_LOCK_EVP_PKEY);
+		EVP_PKEY_up_ref(this->key);
 	}
 	return ret;
 }
@@ -119,4 +142,23 @@ PrivateKey* EdDSAKeyPair::getPrivateKey() throw (AsymmetricKeyException) {
 AsymmetricKey::Algorithm EdDSAKeyPair::getAlgorithm()
 		throw (AsymmetricKeyException) {
 	return AsymmetricKey::EdDSA;
+}
+
+EVP_PKEY_CTX* EdDSAKeyPair::generateCTX(AsymmetricKey::Curve curve) {
+  EVP_PKEY_CTX *ctx = NULL;
+
+  switch (curve) {
+    case AsymmetricKey::ED25519:
+      ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED25519, NULL);
+      break;
+    case AsymmetricKey::ED448:
+      ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_ED448, NULL);
+      break;
+    default:
+      throw AsymmetricKeyException(AsymmetricKeyException::INVALID_TYPE,
+          "EdDSAKeyPair::generateCTX");
+      break;
+  }
+
+  return ctx;
 }

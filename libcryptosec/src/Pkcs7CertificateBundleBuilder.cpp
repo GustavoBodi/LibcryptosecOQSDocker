@@ -18,7 +18,7 @@ void Pkcs7CertificateBundleBuilder::init()
 	if (this->state != Pkcs7Builder::NO_INIT)
 	{
 		PKCS7_free(this->pkcs7);
-		this->pkcs7 = NULL;
+		this->pkcs7 = PKCS7_new();
 		if (this->state == Pkcs7Builder::UPDATE)
 		{
 			BIO_free(this->p7bio);

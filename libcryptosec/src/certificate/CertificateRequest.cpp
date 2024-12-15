@@ -73,49 +73,7 @@ std::string CertificateRequest::getXmlEncoded()
 
 std::string CertificateRequest::getXmlEncoded(std::string tab)
 {
-	std::string ret, string;
-	unsigned int i;
-	RDNSequence subject;
-	std::vector<Extension *> extensions;
-	ByteArray publicKeyInfo;
-	char temp[15];
-	long value;
-
-	ret = tab + "<certificateRequest>\n";
-
-		value = this->getVersion();
-		sprintf(temp, "%d", (int)value);
-		string = temp;
-		ret += tab + "\t<version>" + string + "</version>\n";
-
-		ret += tab + "\t<subject>\n";
-		subject = this->getSubject();
-		ret += subject.getXmlEncoded(tab + "\t\t");
-		ret += tab + "\t</subject>\n";
-
-		try
-		{
-			publicKeyInfo = this->getPublicKeyInfo();
-			ret += tab + "\t<publicKeyInfo>\n";
-			ret += tab + "\t\t" + Base64::encode(publicKeyInfo) + "\n";
-			ret += tab + "\t</publicKeyInfo>\n";
-		}
-		catch (...)
-		{
-		}
-
-		ret += tab + "\t<extensions>\n";
-		extensions = this->getExtensions();
-		for (i=0;i<extensions.size();i++)
-		{
-			ret += extensions.at(i)->getXmlEncoded(tab + "\t\t");
-			delete extensions.at(i);
-		}
-		ret += tab + "\t</extensions>\n";
-
-	ret += tab + "</certificateRequest>\n";
-
-	return ret;
+	return this->toXml(tab);
 }
 
 std::string CertificateRequest::toXml(std::string tab)
@@ -240,7 +198,7 @@ MessageDigest::Algorithm CertificateRequest::getMessageDigestAlgorithm()
 		throw (MessageDigestException)
 {
 	MessageDigest::Algorithm ret;
-	ret = MessageDigest::getMessageDigest(OBJ_obj2nid(this->req->sig_alg->algorithm));
+	ret = MessageDigest::getMessageDigest(X509_REQ_get_signature_nid(this->req));
 	return ret;
 }
 
@@ -274,18 +232,25 @@ PublicKey* CertificateRequest::getPublicKey()
 ByteArray CertificateRequest::getPublicKeyInfo()
 		throw (CertificationException)
 {
-	ByteArray ret;
-	unsigned int size;
-	ASN1_BIT_STRING *temp;
-	if (this->req->req_info->pubkey->public_key == NULL)
-	{
-		throw CertificationException(CertificationException::SET_NO_VALUE, "CertificateBuilder::getPublicKeyInfo");
-	}
-	temp = this->req->req_info->pubkey->public_key;
-	ret = ByteArray(EVP_MAX_MD_SIZE);
-	EVP_Digest(temp->data, temp->length, ret.getDataPointer(), &size, EVP_sha1(), NULL);
-	ret = ByteArray(ret.getDataPointer(), size);
-	return ret;
+	//X509 *cert;
+	//ByteArray ret = ByteArray(EVP_MAX_MD_SIZE);
+	//unsigned int key_len;
+	//unsigned char *key_bin = NULL;
+	//cert = X509_REQ_to_X509(this->req, 1, NULL);
+	//X509_PUBKEY *key = X509_REQ_get_X509_PUBKEY(this->req);
+	//key_len = i2d_X509_PUBKEY(key, &key_bin);
+	////i2d_X509_PUBKEY(X509_REQ_get_X509_PUBKEY(this->req), &key_bin);
+	//if (key_len <= 0)
+	//{
+	//	throw CertificationException(CertificationException::SET_NO_VALUE, "CertificateBuilder::getPublicKeyInfo");
+	//}
+	//ASN1_BIT_STRING *temp = X509_get0_pubkey_bitstr(cert);
+	//unsigned int size;
+	//std::cout << key_len << std::endl;
+	//EVP_Digest(temp->data, temp->length, ret.getDataPointer(), &size, EVP_sha1(), NULL);
+	//ret = ByteArray(ret.getDataPointer(), size);
+	PublicKey pubKey = PublicKey(X509_REQ_get_pubkey(this->req));
+	return pubKey.getKeyIdentifier();
 }
 
 void CertificateRequest::setSubject(RDNSequence &name)
@@ -332,19 +297,10 @@ void CertificateRequest::addExtension(Extension &extension)
 
 void CertificateRequest::addExtensions(std::vector<Extension *> &extensions)
 {
-	X509_EXTENSION *ext;
-	STACK_OF(X509_EXTENSION) *extensionsStack;
-	unsigned int i;
-	if (extensions.size() > 0)
+	std::vector<Extension *>::iterator it;
+	for(it = extensions.begin(); it != extensions.end(); it++)
 	{
-		extensionsStack = sk_X509_EXTENSION_new_null();
-		for (i=0;i<extensions.size();i++)
-		{
-			ext = extensions.at(i)->getX509Extension();
-			sk_X509_EXTENSION_push(extensionsStack, ext);
-		}
-		X509_REQ_add_extensions(this->req, extensionsStack);
-		sk_X509_EXTENSION_pop_free(extensionsStack, X509_EXTENSION_free);
+		this->addExtension(**it);
 	}
 }
 
@@ -646,7 +602,7 @@ void CertificateRequest::sign(PrivateKey &privateKey, MessageDigest::Algorithm m
 
         // TODO: We force Identity message digest for EdDSA to avoid changing callers which always pass digests.
         EVP_PKEY* pkey = privateKey.getEvpPkey();
-        int pkeyType = EVP_PKEY_type(pkey->type);
+        int pkeyType = EVP_PKEY_base_id(pkey);
         int nid25519 = OBJ_sn2nid("ED25519");
         int nid521 = OBJ_sn2nid("ED521");
         int nid448 = OBJ_sn2nid("ED448");
@@ -673,7 +629,26 @@ bool CertificateRequest::verify()
 
 bool CertificateRequest::isSigned() const throw()
 {
-	return ASN1_STRING_data(this->req->signature) != NULL;
+	//return ASN1_STRING_data(this->req->signature) != NULL; //martin: omiti codigo openssl 1.0.x
+	
+	//Primeira opcao: mais parecida com codigo acima
+	//  ASN1_BIT_STRING *psig = ASN1_BIT_STRING_new();
+	//  X509_ALGOR *palg = X509_ALGOR_new();
+//
+	//  const ASN1_BIT_STRING *psig2 = const_cast<const ASN1_BIT_STRING *>(psig);
+	//  const X509_ALGOR *palg2 = const_cast<const X509_ALGOR *>(palg);
+//
+//
+	// X509_REQ_get0_signature(this->req, &psig2, &palg2);
+	//bool isSigned = psig->data != NULL;
+//
+	// ASN1_BIT_STRING_free(psig);
+	// X509_ALGOR_free(palg);
+	//return isSigned;
+	//Fim primeira opcao
+
+	//Segunda opcao: acho que se não houver assinatura, então o Nid/oid da assinatura nao vai estar definido e a funcao OBJ_obj2nid vai retornar NID_undef
+	return X509_REQ_get_signature_nid(this->req) != NID_undef;
 }
 
 

@@ -1,22 +1,19 @@
 ############# CC FLAGS ###############################
 NAME = test.out
 CC = g++
-CPPFLAGS = -g -std=c++98 -DGTEST_HAS_PTHREAD=0
-DEFS = -DFIPS
+CPPFLAGS = -g -std=c++14 -DGTEST_HAS_PTHREAD=0
+DEFS =
 
 ############# ENVIRONMENT ###############################
 OPENSSL_PREFIX ?= /usr
 OPENSSL_LIBDIR ?= $(OPENSSL_PREFIX)/lib64
 OPENSSL_INCLUDEDIR ?= $(OPENSSL_PREFIX)/include
 LIBCRYPTOSEC ?= ../libcryptosec.so
-GTEST_INCLUDEDIR ?= /usr/include/gtest
+GTEST_INCLUDEDIR ?= /usr/include
 SRC_DIR ?= src/unit
 
 
 ############ DEPENDENCIES ############################
-#LIBS = $(LIBCRYPTOSEC) -lgtest -lcrypto -lssl -pthread
-#INCLUDES = -I../include -I$(GTEST_DIR) -I$(SSL_DIR)
-
 
 LIBS = $(LIBCRYPTOSEC) -L$(OPENSSL_LIBDIR) -Wl,-rpath,$(OPENSSL_LIBDIR) -lcrypto -lgtest -pthread
 INCLUDES = -I$(OPENSSL_INCLUDEDIR) -I$(GTEST_INCLUDEDIR) -I../include
@@ -53,6 +50,8 @@ OBJS += $(TEST_SRCS:.cpp=.o)
 ########### TARGETS ##################################
 
 all: .comp
+
+test: test_dynamic
 
 test_dynamic: .check_compiled .comp .run
 

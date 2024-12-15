@@ -2,6 +2,7 @@
 
 MessageDigest::MessageDigest()
 {
+	this->ctx = EVP_MD_CTX_new();
 	this->state = MessageDigest::NO_INIT;
 }
 
@@ -12,8 +13,10 @@ MessageDigest::MessageDigest(MessageDigest::Algorithm algorithm)
 	const EVP_MD *md;
 	this->state = MessageDigest::INIT;
 	this->algorithm = algorithm;
+	this->ctx = EVP_MD_CTX_new();
 	md = MessageDigest::getMessageDigest(this->algorithm);
-	rc = EVP_DigestInit(&this->ctx, md); 
+	EVP_MD_CTX_init(this->ctx);
+	rc = EVP_DigestInit(this->ctx, md);
 	if (!rc)
 	{
 		throw MessageDigestException(MessageDigestException::CTX_INIT, "MessageDigest::MessageDigest");
@@ -27,9 +30,10 @@ MessageDigest::MessageDigest(MessageDigest::Algorithm algorithm, Engine &engine)
 	const EVP_MD *md;
 	this->state = MessageDigest::INIT;
 	this->algorithm = algorithm;
+	this->ctx = EVP_MD_CTX_new();
 	md = MessageDigest::getMessageDigest(this->algorithm);
-	EVP_MD_CTX_init(&this->ctx);
-	rc = EVP_DigestInit_ex(&this->ctx, md, engine.getEngine());
+	EVP_MD_CTX_init(this->ctx);
+	rc = EVP_DigestInit_ex(this->ctx, md, engine.getEngine());
 	if (!rc)
 	{
 		throw MessageDigestException(MessageDigestException::CTX_INIT, "MessageDigest::MessageDigest");
@@ -38,7 +42,7 @@ MessageDigest::MessageDigest(MessageDigest::Algorithm algorithm, Engine &engine)
 
 MessageDigest::~MessageDigest()
 {
-	EVP_MD_CTX_cleanup(&this->ctx);
+	EVP_MD_CTX_free(this->ctx);
 }
 
 void MessageDigest::init(MessageDigest::Algorithm algorithm)
@@ -47,11 +51,11 @@ void MessageDigest::init(MessageDigest::Algorithm algorithm)
 	int rc;
 	const EVP_MD *md;
 	if (this->state != MessageDigest::NO_INIT){
-		EVP_MD_CTX_cleanup(&this->ctx);
+		EVP_MD_CTX_reset(this->ctx); //martin: EVP_MD_CTX_cleanup -> EVP_MD_CTX_reset see openssl1.1.c/CHANGES:647
 	}
 	this->algorithm = algorithm;
 	md = MessageDigest::getMessageDigest(this->algorithm);
-	rc = EVP_DigestInit(&this->ctx, md); 
+	rc = EVP_DigestInit(this->ctx, md);
 	if (!rc)
 	{
 		throw MessageDigestException(MessageDigestException::CTX_INIT, "MessageDigest::init");
@@ -65,12 +69,12 @@ void MessageDigest::init(MessageDigest::Algorithm algorithm, Engine &engine)
 	int rc;
 	const EVP_MD *md;
 	if (this->state != MessageDigest::NO_INIT){
-		EVP_MD_CTX_cleanup(&this->ctx);
+		EVP_MD_CTX_reset(this->ctx); //martin: EVP_MD_CTX_cleanup -> EVP_MD_CTX_reset see openssl1.1.c/CHANGES:647
 	}
 	this->algorithm = algorithm;
 	md = MessageDigest::getMessageDigest(this->algorithm);
-	EVP_MD_CTX_init(&this->ctx);
-	rc = EVP_DigestInit_ex(&this->ctx, md, engine.getEngine());
+	EVP_MD_CTX_init(this->ctx);
+	rc = EVP_DigestInit_ex(this->ctx, md, engine.getEngine());
 	if (!rc)
 	{
 		throw MessageDigestException(MessageDigestException::CTX_INIT, "MessageDigest::init");
@@ -85,7 +89,7 @@ void MessageDigest::update(ByteArray &data) throw (MessageDigestException, Inval
 	{
 		throw InvalidStateException("MessageDigest::update");
 	}
-	rc = EVP_DigestUpdate(&this->ctx, data.getDataPointer(), data.size());
+	rc = EVP_DigestUpdate(this->ctx, data.getDataPointer(), data.size());
 	if (!rc)
 	{
 		throw MessageDigestException(MessageDigestException::CTX_UPDATE, "MessageDigest::update");
@@ -109,8 +113,8 @@ ByteArray MessageDigest::doFinal() throw (MessageDigestException, InvalidStateEx
 		throw InvalidStateException("MessageDigest::doFinal");
 	}
 	digest = (unsigned char *)calloc(EVP_MAX_MD_SIZE + 1, sizeof(unsigned char));
-	rc = EVP_DigestFinal_ex(&this->ctx, digest, &ndigest);
-	EVP_MD_CTX_cleanup(&this->ctx);
+	rc = EVP_DigestFinal_ex(this->ctx, digest, &ndigest);
+	EVP_MD_CTX_reset(this->ctx); //martin: EVP_MD_CTX_cleanup -> EVP_MD_CTX_reset see openssl1.1.c/CHANGES:647
 	this->state = MessageDigest::NO_INIT;
 	if (!rc)
 	{
@@ -158,9 +162,6 @@ const EVP_MD* MessageDigest::getMessageDigest(MessageDigest::Algorithm algorithm
 		case MessageDigest::RIPEMD160:
 			md = EVP_ripemd160();
 			break;
-		case MessageDigest::SHA:
-			md = EVP_sha();
-			break;
 		case MessageDigest::SHA1:
 			md = EVP_sha1();
 			break;
@@ -181,6 +182,41 @@ const EVP_MD* MessageDigest::getMessageDigest(MessageDigest::Algorithm algorithm
 			break;
 	}
 	return md;
+}
+
+ObjectIdentifier MessageDigest::getMessageDigestOid(MessageDigest::Algorithm algorithm) throw (MessageDigestException)
+{
+	ASN1_OBJECT* asn1object = NULL;
+	switch (algorithm)
+	{
+		case MessageDigest::MD4:
+			asn1object = OBJ_nid2obj(NID_md4);
+			break;
+		case MessageDigest::MD5:
+			asn1object = OBJ_nid2obj(NID_md5);
+			break;
+		case MessageDigest::RIPEMD160:
+			asn1object = OBJ_nid2obj(NID_ripemd160);
+			break;
+		case MessageDigest::SHA1:
+			asn1object = OBJ_nid2obj(NID_sha1);
+			break;
+		case MessageDigest::SHA224:
+			asn1object = OBJ_nid2obj(NID_sha224);
+			break;
+		case MessageDigest::SHA256:
+			asn1object = OBJ_nid2obj(NID_sha256);
+			break;
+		case MessageDigest::SHA384:
+			asn1object = OBJ_nid2obj(NID_sha384);
+			break;
+		case MessageDigest::SHA512:
+			asn1object = OBJ_nid2obj(NID_sha512);
+			break;
+		default:
+			throw MessageDigestException(MessageDigestException::INVALID_ALGORITHM, "MessageDigest::getMessageDigest");
+	}
+	return ObjectIdentifier(asn1object);
 }
 
 MessageDigest::Algorithm MessageDigest::getMessageDigest(int algorithmNid)
@@ -213,9 +249,6 @@ MessageDigest::Algorithm MessageDigest::getMessageDigest(int algorithmNid)
     		break;
     	case NID_ripemd160: case NID_ripemd160WithRSA:
     		ret = MessageDigest::RIPEMD160;
-    		break;
-    	case NID_sha: case NID_shaWithRSAEncryption:
-    		ret = MessageDigest::SHA;
     		break;
     	default:
 			if (algorithmNid != 0 && algorithmNid == nidIdentity) {

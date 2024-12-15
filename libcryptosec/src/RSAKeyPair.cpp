@@ -3,11 +3,16 @@
 RSAKeyPair::RSAKeyPair(int length)
 		throw (AsymmetricKeyException)
 {
-	RSA *rsa;
+	RSA *rsa = RSA_new();
+	BIGNUM *bn = BN_new();
+	BN_set_word(bn, RSA_F4);
 	this->key = NULL;
 	this->engine = NULL;
-	rsa = NULL;
-	rsa = RSA_generate_key(length, RSA_F4, NULL, NULL);
+	//rsa = NULL;
+	if (!RSA_generate_key_ex(rsa, length, bn, NULL))
+	{
+		throw AsymmetricKeyException(AsymmetricKeyException::INTERNAL_ERROR, "RSAKeyPair::RSAKeyPair");
+	}
 	if (!rsa)
 	{
 		throw AsymmetricKeyException(AsymmetricKeyException::INTERNAL_ERROR, "RSAKeyPair::RSAKeyPair");
@@ -74,7 +79,8 @@ PrivateKey* RSAKeyPair::getPrivateKey()
 		{
 			throw AsymmetricKeyException(AsymmetricKeyException::INVALID_TYPE, "RSAKeyPair::getPrivateKey");
 		}
-		CRYPTO_add(&this->key->references,1,CRYPTO_LOCK_EVP_PKEY);
+		//CRYPTO_add(&this->key->references,1,CRYPTO_LOCK_EVP_PKEY);
+		EVP_PKEY_up_ref(this->key);//martin: faz o mesmo que a linha comentada acima?
 	}
 	return ret;
 }

@@ -1,0 +1,24 @@
+sudo: required
+
+language: cpp
+
+matrix:
+  include:
+      env: 
+        - IMAGE=fedora:latest
+
+services:
+  - docker
+
+before_install:
+  - docker --version
+  - docker run -d --name image-build -v $(pwd):/travis $IMAGE tail -f /dev/null
+  - docker ps
+
+install:
+  - docker exec -t image-build bash -c "dnf update -y && dnf install openssl openssl-static libp11-devel gcc-c++ make gtest-devel findutils -y"
+
+script:
+  - docker exec -t image-build bash -c "cd /travis && ls && openssl version"
+  - docker exec -t image-build bash -c "cd /travis && make -j `nproc` && make install"
+  - docker exec -t image-build bash -c "cd /travis/tests && make test_dynamic"

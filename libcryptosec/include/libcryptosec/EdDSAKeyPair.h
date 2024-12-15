@@ -63,6 +63,8 @@ public:
 	virtual AsymmetricKey::Algorithm getAlgorithm()
 			throw (AsymmetricKeyException);
 
+protected:
+  EVP_PKEY_CTX* generateCTX(AsymmetricKey::Curve curve);
 };
 
 #endif /* EdDSAKEYPAIR_H_ */

@@ -31,3 +31,8 @@
 *.out
 *.app
 
+# Hidden folders & files
+.*
+!/.gitignore
+!/.travis.yml
+*.gcov

@@ -89,9 +89,8 @@ PrivateKey* Pkcs12::getPrivKey(string password) throw(Pkcs12Exception)
 	{
 		throw AsymmetricKeyException(AsymmetricKeyException::INVALID_TYPE, "Pkcs12::getPrivKey");
 	}
-	CRYPTO_add(&this->privKey->getEvpPkey()->references,1,CRYPTO_LOCK_EVP_PKEY);
-
-
+	//CRYPTO_add(&this->privKey->getEvpPkey()->references,1,CRYPTO_LOCK_EVP_PKEY);
+	EVP_PKEY_up_ref(this->privKey->getEvpPkey());//martin: faz o mesmo que a linha comentada acima?
 	return ret;
 }
 
@@ -144,12 +143,10 @@ void Pkcs12::parse(string password) throw(Pkcs12Exception)
 			case PKCS12_R_MAC_VERIFY_FAILURE :
 				throw Pkcs12Exception(Pkcs12Exception::PARSE_ERROR, "Pkcs12::parse");
 				break;
+				
 			case PKCS12_R_PARSE_ERROR :
 				throw Pkcs12Exception(Pkcs12Exception::MAC_VERIFY_FAILURE, "Pkcs12::parse");
 				break;
-			case ASN1_R_INVALID_OBJECT_ENCODING :
-        		throw Pkcs12Exception(Pkcs12Exception::ASN1_INVALID_OBJECT_ENCODING, "Pkcs12::parse");
-        		break;
 		}
 	}
 	

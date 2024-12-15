@@ -28,13 +28,11 @@ public:
 	{
 		RSA,
 		DSA,
-//		DH,
-		RAND,
-//		ECDH,
 		ECDSA,
+		DH,
+		RAND,
 		CIPHERS,
 		DIGESTS,
-//		STORE,
 		ALL,
 		NONE
 	};

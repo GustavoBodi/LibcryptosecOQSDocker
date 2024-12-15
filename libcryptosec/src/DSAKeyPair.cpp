@@ -6,8 +6,8 @@ DSAKeyPair::DSAKeyPair(int length)
 	DSA *dsa;
 	this->key = NULL;
 	this->engine = NULL;
-	dsa = NULL;
-	dsa = DSA_generate_parameters(length, NULL, 0, NULL, NULL, NULL, NULL);
+	dsa = DSA_new();
+	DSA_generate_parameters_ex(dsa, length, NULL, 0, NULL, NULL, NULL);
 	if (!dsa)
 	{
 		throw AsymmetricKeyException(AsymmetricKeyException::INTERNAL_ERROR, "DSAKeyPair::DSAKeyPair");
@@ -79,7 +79,9 @@ PrivateKey* DSAKeyPair::getPrivateKey()
 		{
 			throw AsymmetricKeyException(AsymmetricKeyException::INVALID_TYPE, "DSAKeyPair::getPrivateKey");
 		}
-		CRYPTO_add(&this->key->references,1,CRYPTO_LOCK_EVP_PKEY);
+		//CRYPTO_add(&this->key->references,1,CRYPTO_LOCK_EVP_PKEY);
+		EVP_PKEY_up_ref(this->key);//martin: faz o mesmo que a linha comentada acima?
+
 	}
 	return ret;
 }

@@ -1,6 +1,6 @@
 #include <libcryptosec/certificate/CRLNumberExtension.h>
 
-CRLNumberExtension::CRLNumberExtension(unsigned long serial=0) : Extension() 
+CRLNumberExtension::CRLNumberExtension(unsigned long serial) : Extension() 
 {
 	this->serial = serial;
     this->objectIdentifier = ObjectIdentifierFactory::getObjectIdentifier(NID_crl_number);
@@ -10,7 +10,7 @@ CRLNumberExtension::CRLNumberExtension(X509_EXTENSION* ext) throw (Certification
 {
 	ASN1_INTEGER* serialAsn1 = NULL;
 	
-	if (OBJ_obj2nid(ext->object) != NID_crl_number)
+	if (OBJ_obj2nid(X509_EXTENSION_get_object(ext)) != NID_crl_number)
 	{
 		X509_EXTENSION_free(ext);
 		throw CertificationException(CertificationException::INVALID_TYPE, "CRLNumberExtension::CRLNumberExtension");
@@ -83,5 +83,21 @@ const long CRLNumberExtension::getSerial() const
 //TODO
 X509_EXTENSION* CRLNumberExtension::getX509Extension()
 {
-	return 0;
+	X509_EXTENSION* ret = NULL;
+	ASN1_INTEGER *serialAsn1 = ASN1_INTEGER_new();
+	
+	if (!ASN1_INTEGER_set(serialAsn1, this->serial)) {
+		ASN1_INTEGER_free(serialAsn1);
+		throw CertificationException(CertificationException::INTERNAL_ERROR, "CRLNumberExtension::getX509Extension");
+	}
+	
+	ret = X509V3_EXT_i2d(NID_crl_number, this->critical, (void *)serialAsn1);
+	
+	if (!ret) {
+		ASN1_INTEGER_free(serialAsn1);
+		throw CertificationException(CertificationException::INTERNAL_ERROR, "CRLNumberExtension::getX509Extension");
+	}
+
+	ASN1_INTEGER_free(serialAsn1);
+	return ret;
 }

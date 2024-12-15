@@ -123,10 +123,10 @@ double BigInteger::getValue() const throw(BigIntegerException)
 	
 	tmp = BN_get_word(this->bigInt);
 	
-	if(tmp == BN_MASK2)
-	{
-		throw BigIntegerException(BigIntegerException::UNSIGNED_LONG_OVERFLOW, "BigInteger::getValue");
-	}
+//	if(tmp == BN_MASK2)
+//	{
+//		throw BigIntegerException(BigIntegerException::UNSIGNED_LONG_OVERFLOW, "BigInteger::getValue");
+//	}
 	
 	ret = static_cast<double>(tmp);
 	
@@ -502,6 +502,17 @@ BigInteger& BigInteger::operator+=(long const c) throw(BigIntegerException)
 {
 	BigInteger tmp(c);
 	return this->add(tmp);
+}
+
+BigInteger& BigInteger::operator-=(BigInteger const& c) throw(BigIntegerException)
+{
+    return this->sub(c);
+}
+
+BigInteger& BigInteger::operator-=(long const c) throw(BigIntegerException)
+{
+    BigInteger tmp(c);
+    return this->sub(tmp);
 }
 
 BigInteger BigInteger::operator-(BigInteger const& c) const throw(BigIntegerException)
