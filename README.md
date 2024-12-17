@@ -11,4 +11,4 @@ rodará o Dockerfile e emitirá um certificado auto-assinado.
 make
 ```
 
-Logo depois disso haverá uma arquivo certificado.crt na pasta output.
+Logo depois disso haverá um arquivo certificado.crt na pasta output.
